@@ -1,6 +1,5 @@
 <?php
 
-// app/Models/Product.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -11,14 +10,15 @@ class Product extends Model
     use HasFactory;
 
     protected $guarded = [];
-    // Explicitly define the table name
     protected $table = 'products';
 
+    // Relationship with Category (fixed class name)
     public function category()
     {
-        return $this->belongsTo(category::class);
+        return $this->belongsTo(category::class); // Ensure capital C for Category
     }
 
+    // Relationship with Supplier
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
@@ -30,7 +30,7 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    // Relationship with SalesItem
+    // Relationship with SalesItems
     public function saleItems()
     {
         return $this->hasMany(SaleItem::class);

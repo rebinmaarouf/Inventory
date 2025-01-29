@@ -53,6 +53,13 @@ import NewRetailInvoice from './components/sales/NewRetailInvoice.vue';
 import SalesDashboard from './components/sales/SalesDashboard.vue';
 import SalesComponent from './components/sales/SalesComponent.vue';
 
+
+import Card from './components/reports/Card.vue';
+import FlowChart from './components/reports/FlowChart.vue';
+import Chart from './components/reports/Chart.vue';
+
+
+
 const routes = [
     {
         path: '/',
