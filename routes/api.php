@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Auth\SocialiteController;
 use App\Http\Controllers\Auth\ResetPasswordController;
@@ -69,6 +70,10 @@ Route::apiResource('customers', CustomerController::class);
 
 
 // In routes/api.php
-Route::get('/orders', [OrderController::class, 'index']);
-Route::post('/orders', [OrderController::class, 'store']);
+Route::apiResource('orders', OrderController::class);
+
 Route::post('/orders/{order}/return', [OrderController::class, 'returnOrder']);
+
+Route::apiResource('sales', SaleController::class);
+
+Route::post('/sales/{sale}/return', [SaleController::class, 'returnSale']);

@@ -29,4 +29,10 @@ class Product extends Model
     {
         return $this->hasMany(OrderItem::class);
     }
+
+    // Relationship with SalesItem
+    public function saleItems()
+    {
+        return $this->hasMany(SaleItem::class);
+    }
 }

@@ -45,6 +45,14 @@ import SalesReport from './components/reports/SalesReport.vue';
 import InventoryReport from './components/reports/InventoryReport.vue';
 import FinancialReport from './components/reports/FinancialReport.vue';
 
+
+//Sales
+import AllInvoices from './components/sales/AllInvoices.vue';
+import NewInvoice from './components/sales/NewInvoice.vue';
+import NewRetailInvoice from './components/sales/NewRetailInvoice.vue';
+import SalesDashboard from './components/sales/SalesDashboard.vue';
+import SalesComponent from './components/sales/SalesComponent.vue';
+
 const routes = [
     {
         path: '/',
@@ -223,7 +231,36 @@ const routes = [
         name: "FinancialReport",
         component: FinancialReport, // Replace with your actual component
     },
-    // A
+    {
+        path: '/sales',
+        name: 'sales-dashboard',
+        component: SalesDashboard,
+        meta: { requiresAuth: true, requiresSidebar: true, requiresTopbar: true, breadcrumb: 'Sales Dashboard' },
+      },
+      {
+        path: '/sales/all-invoices',
+        name: 'all-invoices',
+        component: AllInvoices,
+        meta: { requiresAuth: true, requiresSidebar: true, requiresTopbar: true, breadcrumb: 'All Invoices' },
+      },
+      {
+        path: '/sales/new-invoice',
+        name: 'new-invoice',
+        component: NewInvoice,
+        meta: { requiresAuth: true, requiresSidebar: true, requiresTopbar: true, breadcrumb: 'New Invoice' },
+      },
+      {
+        path: '/sales/new-retail-invoice',
+        name: 'new-retail-invoice',
+        component: NewRetailInvoice,
+        meta: { requiresAuth: true, requiresSidebar: true, requiresTopbar: true, breadcrumb: 'New Retail Invoice' },
+      },
+      {
+        path: '/sales-Component',
+        name: 'sales-somponent',
+        component: SalesComponent,
+        meta: { requiresAuth: true, requiresSidebar: true, requiresTopbar: true, breadcrumb: 'New Retail Invoice' },
+      },
  
 ];
 

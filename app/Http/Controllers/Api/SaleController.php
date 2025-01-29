@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Order;
+use App\Models\Sale;
 use App\Models\Product;
-use App\Models\OrderItem;
+use App\Models\SaleItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 
-class OrderController extends Controller
+class SaleController extends Controller
 {
-    // Store a new order
+    // Store a new sale
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'supplier_id' => 'required|exists:suppliers,id', // Changed from customer_id to supplier_id
+            'customer_id' => 'required|exists:customers,id',
             'payment_method' => 'required|in:cash,card,bank',
             'items' => 'required|array',
             'items.*.product_id' => 'required|exists:products,id',
@@ -30,9 +30,20 @@ class OrderController extends Controller
         DB::beginTransaction();
 
         try {
-            // Create the order
-            $order = Order::create([
-                'supplier_id' => $validated['supplier_id'], // Changed from customer_id to supplier_id
+            // Validate product quantities
+            foreach ($validated['items'] as $item) {
+                $product = Product::find($item['product_id']);
+                if ($product->quantity < $item['quantity']) {
+                    return response()->json([
+                        'message' => 'Not enough stock for product: ' . $product->product_name,
+                        'available_quantity' => $product->quantity,
+                    ], 400);
+                }
+            }
+
+            // Create the sale
+            $sale = Sale::create([
+                'customer_id' => $validated['customer_id'],
                 'payment_method' => $validated['payment_method'],
                 'sub_total' => $validated['sub_total'],
                 'vat' => $validated['vat'],
@@ -40,38 +51,38 @@ class OrderController extends Controller
                 'status' => 'completed', // Default status
             ]);
 
-            // Add order items and update product quantities
+            // Add sale items and update product quantities
             foreach ($validated['items'] as $item) {
-                OrderItem::create([
-                    'order_id' => $order->id,
+                SaleItem::create([
+                    'sale_id' => $sale->id,
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
                     'price' => $item['price'],
                     'total' => $item['total'],
                 ]);
 
-                // Increase the ordered quantity to the product stock
+                // Deduct the sold quantity from the product stock
                 $product = Product::find($item['product_id']);
-                $product->quantity += $item['quantity']; // Changed from -= to +=
+                $product->quantity -= $item['quantity'];
                 $product->save();
             }
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Order created successfully.',
-                'order' => $order,
+                'message' => 'Sale created successfully.',
+                'sale' => $sale,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'message' => 'Failed to create order.',
+                'message' => 'Failed to create sale.',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
 
-    // Fetch all orders
+    // Fetch all sales with optional category filter
     public function index(Request $request)
     {
         try {
@@ -79,7 +90,7 @@ class OrderController extends Controller
             $categoryId = $request->input('category_id');
 
             // Start building the query
-            $query = Order::with(['supplier', 'items.product']); // Changed from customer to supplier
+            $query = Sale::with(['customer', 'items.product']);
 
             // Apply the category filter if a category_id is provided
             if ($categoryId) {
@@ -89,88 +100,89 @@ class OrderController extends Controller
             }
 
             // Execute the query and get the results
-            $orders = $query->get();
+            $sales = $query->get();
 
-            return response()->json($orders);
+            return response()->json($sales);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to fetch orders.',
+                'message' => 'Failed to fetch sales.',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
 
-    // Return an order
-    public function returnOrder($orderId)
+    // Return a sale
+    public function returnSale($saleId)
     {
-        $order = Order::findOrFail($orderId);
+        $sale = Sale::findOrFail($saleId);
 
-        // Check if the order is already returned
-        if ($order->status === 'returned') {
+        // Check if the sale is already returned
+        if ($sale->status === 'returned') {
             return response()->json([
-                'message' => 'Order is already returned.',
+                'message' => 'Sale is already returned.',
             ], 400);
         }
 
         DB::beginTransaction();
 
         try {
-            // Decrease product quantities (since we are returning the order)
-            foreach ($order->items as $item) {
+            // Restore product quantities
+            foreach ($sale->items as $item) {
                 $product = Product::find($item->product_id);
                 if ($product) {
-                    $product->quantity -= $item->quantity; // Changed from += to -=
+                    $product->quantity += $item->quantity; // Add the returned quantity back to stock
                     $product->save();
                 }
             }
 
-            // Mark the order as returned
-            $order->status = 'returned';
-            $order->save();
+            // Mark the sale as returned
+            $sale->status = 'returned';
+            $sale->save();
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Order returned successfully.',
-                'order' => $order,
+                'message' => 'Sale returned successfully.',
+                'sale' => $sale,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'message' => 'Failed to return order.',
+                'message' => 'Failed to return sale.',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
 
-    public function destroy($orderId)
+    // Delete a sale
+    public function destroy($saleId)
     {
-        $order = Order::findOrFail($orderId);
+        $sale = Sale::findOrFail($saleId);
 
         DB::beginTransaction();
 
         try {
-            // Decrease product quantities if needed
-            foreach ($order->items as $item) {
+            // Restore product quantities if needed
+            foreach ($sale->items as $item) {
                 $product = Product::find($item->product_id);
                 if ($product) {
-                    $product->quantity -= $item->quantity; // Changed from += to -=
+                    $product->quantity += $item->quantity;
                     $product->save();
                 }
             }
 
-            // Delete the order
-            $order->delete();
+            // Delete the sale
+            $sale->delete();
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Order deleted successfully.',
+                'message' => 'Sale deleted successfully.',
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'message' => 'Failed to delete order.',
+                'message' => 'Failed to delete sale.',
                 'error' => $e->getMessage(),
             ], 500);
         }

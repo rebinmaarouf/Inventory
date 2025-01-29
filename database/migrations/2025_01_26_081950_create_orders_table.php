@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('customer_id');
+            $table->unsignedBigInteger('supplier_id'); // Changed from customer_id to supplier_id
             $table->string('payment_method'); // e.g., cash, card, bank
             $table->decimal('sub_total', 10, 2); // Subtotal amount
             $table->decimal('vat', 10, 2); // VAT amount
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Foreign key constraint
-            $table->foreign('customer_id')->references('id')->on('customers')->onDelete('cascade');
+            $table->foreign('supplier_id')->references('id')->on('suppliers')->onDelete('cascade'); // Changed to suppliers
         });
     }
 

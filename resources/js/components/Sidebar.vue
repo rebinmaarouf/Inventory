@@ -165,6 +165,47 @@
                 </div>
             </div>
         </li>
+        <!-- Existing sidebar items... -->
+        <li class="nav-item">
+            <a
+                class="nav-link collapsed"
+                href="#"
+                data-bs-toggle="collapse"
+                data-bs-target="#collapseSales"
+                aria-expanded="false"
+                aria-controls="collapseSales"
+            >
+                <i class="fas fa-fw fa-shopping-cart"></i>
+                <span>Sales</span>
+            </a>
+            <div
+                id="collapseSales"
+                class="collapse"
+                aria-labelledby="headingSales"
+                data-bs-parent="#accordionSidebar"
+            >
+                <div class="bg-white py-2 collapse-inner rounded">
+                    <h6 class="collapse-header">Sales Operations:</h6>
+                    <router-link class="collapse-item" to="/sales-component"
+                        >Sales Component</router-link
+                    >
+                    <router-link class="collapse-item" to="/sales"
+                        >Sales Dashboard</router-link
+                    >
+                    <router-link class="collapse-item" to="/sales/new-invoice"
+                        >New Invoice</router-link
+                    >
+                    <router-link
+                        class="collapse-item"
+                        to="/sales/new-retail-invoice"
+                        >New Retail Invoice</router-link
+                    >
+                    <router-link class="collapse-item" to="/sales/all-invoices"
+                        >All Invoices</router-link
+                    >
+                </div>
+            </div>
+        </li>
 
         <!-- Divider -->
         <hr class="sidebar-divider" />

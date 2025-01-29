@@ -77,6 +77,11 @@ export default {
                 "add-customer",
                 "all-customers",
                 "pos",
+                "sales-dashboard",
+                "all-invoices",
+                "new-invoice",
+                "new-retail-invoice",
+                "sales-somponent",
             ];
             return homePages.includes(this.$route.name) ? "home-page" : "";
         },

@@ -8,7 +8,7 @@
                         <h5 class="card-title mb-0">Products</h5>
                     </div>
                     <div class="card-body">
-                        <!-- Product Search Bar and Category Filter -->
+                        <!-- Product Search Bar -->
                         <div class="form-group mb-3">
                             <input
                                 v-model="searchTerm"
@@ -16,18 +16,6 @@
                                 class="form-control"
                                 placeholder="Search products..."
                             />
-                        </div>
-                        <div class="category-filter">
-                            <select v-model="selectedCategory">
-                                <option value="">All Categories</option>
-                                <option
-                                    v-for="category in categories"
-                                    :key="category.id"
-                                    :value="category.id"
-                                >
-                                    {{ category.category_name }}
-                                </option>
-                            </select>
                         </div>
 
                         <!-- Product List -->
@@ -52,10 +40,10 @@
                                             Stock: {{ product.quantity }}
                                         </p>
                                         <button
-                                            class="btn btn-sm btn-success"
+                                            class="btn btn-sm btn-primary"
                                             @click="addToCart(product)"
                                         >
-                                            Order Product
+                                            Add to Cart
                                         </button>
                                     </div>
                                 </div>
@@ -127,23 +115,23 @@
                             </p>
                         </div>
 
-                        <!-- Supplier Selection -->
+                        <!-- Customer Selection -->
                         <div class="form-group mb-3">
-                            <label for="supplier">Supplier</label>
+                            <label for="customer">Customer</label>
                             <select
-                                v-model="selectedSupplier"
+                                v-model="selectedCustomer"
                                 class="form-control"
-                                id="supplier"
+                                id="customer"
                             >
                                 <option value="" disabled>
-                                    Select Supplier
+                                    Select Customer
                                 </option>
                                 <option
-                                    v-for="supplier in suppliers"
-                                    :key="supplier.id"
-                                    :value="supplier.id"
+                                    v-for="customer in customers"
+                                    :key="customer.id"
+                                    :value="customer.id"
                                 >
-                                    {{ supplier.name }}
+                                    {{ customer.name }}
                                 </option>
                             </select>
                         </div>
@@ -184,7 +172,7 @@
         <!-- Hidden Invoice Content for Printing -->
         <div id="invoiceContent" style="display: none">
             <h2>Invoice</h2>
-            <p><strong>Supplier:</strong> {{ selectedSupplierName }}</p>
+            <p><strong>Customer:</strong> {{ selectedCustomerName }}</p>
             <p><strong>Payment Method:</strong> {{ paymentMethod }}</p>
             <table class="table table-bordered">
                 <thead>
@@ -240,7 +228,7 @@
                             <thead>
                                 <tr>
                                     <th>Order ID</th>
-                                    <th>Supplier</th>
+                                    <th>Customer</th>
                                     <th>Payment Method</th>
                                     <th>Sub Total</th>
                                     <th>VAT</th>
@@ -258,8 +246,8 @@
                                     <td>{{ order.id }}</td>
                                     <td>
                                         {{
-                                            order.supplier
-                                                ? order.supplier.name
+                                            order.customer
+                                                ? order.customer.name
                                                 : "N/A"
                                         }}
                                     </td>
@@ -332,8 +320,8 @@ export default {
             searchTerm: "",
             products: [],
             cart: [],
-            suppliers: [], // Add suppliers array
-            selectedSupplier: "", // Replace selectedCustomer with selectedSupplier
+            customers: [],
+            selectedCustomer: "",
             paymentMethod: "cash",
             subTotal: 0,
             vat: 0,
@@ -341,27 +329,15 @@ export default {
             orders: [],
             isFetchingOrders: false,
             orderSearchTerm: "",
-            categories: [], // Ensure this is populated with your category data
-            selectedCategory: "",
-            selectedSupplierName: "", // or some default value
         };
     },
     computed: {
         filteredProducts() {
-            let filtered = this.products.filter((product) =>
+            return this.products.filter((product) =>
                 product.product_name
                     .toLowerCase()
                     .includes(this.searchTerm.toLowerCase())
             );
-
-            // Apply category filter if a category is selected
-            if (this.selectedCategory) {
-                filtered = filtered.filter(
-                    (product) => product.category_id == this.selectedCategory
-                );
-            }
-
-            return filtered;
         },
         filteredOrders() {
             if (!Array.isArray(this.orders)) {
@@ -390,9 +366,8 @@ export default {
     },
     created() {
         this.fetchProducts();
-        this.fetchSuppliers(); // Fetch suppliers instead of customers
+        this.fetchCustomers();
         this.fetchOrders();
-        this.fetchCategories(); // Fetch categories when the component is created
     },
     methods: {
         // Add this method to handle product images
@@ -405,56 +380,65 @@ export default {
                 return "https://via.placeholder.com/150"; // Fallback image if none is provided
             }
         },
+        // Add this method to handle adding products to the cart
         addToCart(product) {
+            // Check if the product is already in the cart
             const existingItem = this.cart.find(
                 (item) => item.product_id === product.id
             );
 
             if (existingItem) {
-                // For orders, you might not need to check stock availability
+                // If the product is already in the cart, check if the new quantity exceeds the available stock
+                if (existingItem.quantity + 1 > product.quantity) {
+                    Swal.fire(
+                        "Warning",
+                        `Not enough stock for product: ${product.product_name}. Available: ${product.quantity}`,
+                        "warning"
+                    );
+                    return;
+                }
+                // If the product is already in the cart, increase the quantity
                 existingItem.quantity += 1;
             } else {
-                // Add the product to the cart without stock validation
+                // If the product is not in the cart, check if the quantity exceeds the available stock
+                if (1 > product.quantity) {
+                    Swal.fire(
+                        "Warning",
+                        `Not enough stock for product: ${product.product_name}. Available: ${product.quantity}`,
+                        "warning"
+                    );
+                    return;
+                }
+                // If the product is not in the cart, add it
                 this.cart.push({
                     product_id: product.id,
                     product_name: product.product_name,
                     selling_price: product.selling_price,
                     quantity: 1,
-                    category_id: product.category_id, // Include category_id in the cart
-                    // Additional fields for orders (if needed)
-                    order_id: null, // Placeholder for order ID (to be assigned later)
-                    status: "pending", // Default status for the order
                 });
             }
 
+            // Update the cart totals
             this.updateCartTotal();
         },
-        // Add this method to validate cart items against available stock
-        validateCartItems() {
+        // Add this method to update cart totals
+        updateCartTotal() {
+            // Validate cart items before updating totals
             for (const item of this.cart) {
                 const product = this.products.find(
                     (product) => product.id === item.product_id
                 );
-                // if (product && item.quantity > product.quantity) {
-                //     return {
-                //         valid: false,
-                //         message: `Not enough stock for product: ${product.product_name}. Available: ${product.quantity}`,
-                //     };
-                // }
-                // If the product doesn't exist, the order is invalid
-                if (!product) {
-                    return {
-                        valid: false,
-                        message: `Product with ID ${item.product_id} not found.`,
-                    };
+                if (product && item.quantity > product.quantity) {
+                    Swal.fire(
+                        "Warning",
+                        `Not enough stock for product: ${product.product_name}. Available: ${product.quantity}`,
+                        "warning"
+                    );
+                    item.quantity = product.quantity; // Reset the quantity to the available stock
                 }
             }
-            return { valid: true };
-        },
-        // Add this method to update cart totals
-        // Update cart totals without stock validation
-        updateCartTotal() {
-            // Calculate subtotal, VAT, and total
+
+            // Update the cart totals
             this.subTotal = this.cart.reduce(
                 (total, item) => total + item.selling_price * item.quantity,
                 0
@@ -462,93 +446,78 @@ export default {
             this.vat = this.subTotal * 0.05; // Assuming 5% VAT
             this.total = this.subTotal + this.vat;
         },
-
         // Add this method to remove items from the cart
         removeFromCart(index) {
             this.cart.splice(index, 1); // Remove the item at the specified index
             this.updateCartTotal(); // Update the cart totals
         },
-        // Validate cart items (optional for orders, e.g., for backorders)
-        validateProductExistence() {
+        // Add this method to validate cart items against available stock
+        validateCartItems() {
             for (const item of this.cart) {
                 const product = this.products.find(
                     (product) => product.id === item.product_id
                 );
-
-                // Handle missing product
-                if (!product) {
+                if (product && item.quantity > product.quantity) {
                     return {
                         valid: false,
-                        message: `Product not found for ID: ${item.product_id}`,
+                        message: `Not enough stock for product: ${product.product_name}. Available: ${product.quantity}`,
                     };
                 }
             }
             return { valid: true };
         },
-        // In your Vue component, update the submitOrder method to use supplier_id instead of customer_id
+        // Add this method to submit the order
         async submitOrder() {
             if (this.cart.length === 0) {
                 Swal.fire("Error", "Your cart is empty.", "error");
                 return;
             }
 
-            if (!this.selectedSupplier) {
-                Swal.fire("Error", "Please select a supplier.", "error");
+            if (!this.selectedCustomer) {
+                Swal.fire("Error", "Please select a customer.", "error");
                 return;
             }
 
-            // Validate cart items against available stock
-            const validationResult = this.validateCartItems();
-            if (!validationResult.valid) {
-                Swal.fire("Warning", validationResult.message, "warning");
+            // Validate cart items before submitting the order
+            const validation = this.validateCartItems();
+            if (!validation.valid) {
+                Swal.fire("Warning", validation.message, "warning");
                 return;
             }
 
-            const result = await Swal.fire({
-                title: "Confirm Order",
-                text: "Are you sure you want to place this order?",
-                icon: "question",
-                showCancelButton: true,
-                confirmButtonText: "Yes, place order!",
-                cancelButtonText: "No, cancel!",
-            });
+            const orderData = {
+                customer_id: this.selectedCustomer,
+                payment_method: this.paymentMethod,
+                items: this.cart.map((item) => ({
+                    product_id: item.product_id,
+                    quantity: item.quantity,
+                    price: item.selling_price,
+                    total: item.selling_price * item.quantity,
+                })),
+                sub_total: this.subTotal,
+                vat: this.vat,
+                total: this.total,
+            };
 
-            if (result.isConfirmed) {
-                const orderData = {
-                    supplier_id: this.selectedSupplier,
-                    payment_method: this.paymentMethod,
-                    items: this.cart.map((item) => ({
-                        product_id: item.product_id,
-                        quantity: item.quantity,
-                        price: item.selling_price,
-                        total: item.selling_price * item.quantity,
-                    })),
-                    sub_total: this.subTotal,
-                    vat: this.vat,
-                    total: this.total,
-                };
-
-                try {
-                    const response = await axios.post("/api/orders", orderData);
-                    if (response.status === 201) {
-                        Swal.fire(
-                            "Success",
-                            "Order created successfully!",
-                            "success"
-                        );
-                        this.cart = [];
-                        this.selectedSupplier = "";
-                        this.paymentMethod = "cash";
-                        this.subTotal = 0;
-                        this.vat = 0;
-                        this.total = 0;
-                        await this.fetchOrders();
-                        await this.fetchProducts();
-                    }
-                } catch (error) {
-                    console.error("Error submitting order:", error);
-                    Swal.fire("Error", "Failed to submit order.", "error");
+            try {
+                const response = await axios.post("/api/orders", orderData);
+                if (response.status === 201) {
+                    Swal.fire(
+                        "Success",
+                        "Order created successfully!",
+                        "success"
+                    );
+                    this.cart = []; // Clear the cart
+                    this.selectedCustomer = ""; // Reset customer selection
+                    this.paymentMethod = "cash"; // Reset payment method
+                    this.subTotal = 0;
+                    this.vat = 0;
+                    this.total = 0;
+                    await this.fetchOrders(); // Refresh the orders list
                 }
+            } catch (error) {
+                console.error("Error submitting order:", error);
+                Swal.fire("Error", "Failed to submit order.", "error");
             }
         },
         async fetchProducts() {
@@ -560,13 +529,13 @@ export default {
                 Swal.fire("Error", "Failed to fetch products.", "error");
             }
         },
-        async fetchSuppliers() {
+        async fetchCustomers() {
             try {
-                const response = await axios.get("/api/suppliers");
-                this.suppliers = response.data;
+                const response = await axios.get("/api/customers");
+                this.customers = response.data;
             } catch (error) {
-                console.error("Error fetching suppliers:", error);
-                Swal.fire("Error", "Failed to fetch suppliers.", "error");
+                console.error("Error fetching customers:", error);
+                Swal.fire("Error", "Failed to fetch customers.", "error");
             }
         },
         async fetchOrders() {
@@ -653,15 +622,6 @@ export default {
                 }
             }
         },
-        async fetchCategories() {
-            try {
-                const response = await axios.get("/api/categories");
-                this.categories = response.data;
-            } catch (error) {
-                console.error("Error fetching categories:", error);
-                Swal.fire("Error", "Failed to fetch categories.", "error");
-            }
-        },
         printReport() {
             const printContents =
                 document.querySelector(".order-report").innerHTML;
@@ -683,17 +643,15 @@ export default {
             const invoiceContent = `
                 <div class="invoice">
                     <h2>Invoice</h2>
-            <p><strong>Supplier:</strong> ${this.selectedSupplier}</p>
-                                <p><strong>Payment Method:</strong> ${
-                                    this.paymentMethod
-                                }</p>
-
+                    <p><strong>Customer:</strong> ${this.selectedCustomer}</p>
+                    <p><strong>Payment Method:</strong> ${
+                        this.paymentMethod
+                    }</p>
                     <table>
                         <thead>
                             <tr>
                                 <th>Product</th>
                                 <th>Quantity</th>
-                                <th>Category</th>
                                 <th>Price</th>
                                 <th>Total</th>
                             </tr>
@@ -704,12 +662,6 @@ export default {
                                     (item) => `
                                 <tr>
                                     <td>${item.product_name}</td>
-                                      <td>${
-                                          this.categories.find(
-                                              (cat) =>
-                                                  cat.id === item.category_id
-                                          )?.category_name || "N/A"
-                                      }</td>
                                     <td>${item.quantity}</td>
                                     <td>${item.selling_price}</td>
                                     <td>${
@@ -779,25 +731,6 @@ export default {
 
 .card-body {
     padding: 20px;
-}
-
-/* Category Filter Dropdown */
-.category-filter {
-    margin-bottom: 20px;
-}
-
-.category-filter select {
-    width: 100%;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ddd;
-    background-color: white;
-    cursor: pointer;
-}
-
-.category-filter select:focus {
-    border-color: #4e73df;
-    outline: none;
 }
 
 /* Product List */
